@@ -51,7 +51,7 @@ SEARCH_URL=https\://api.x-metash.cn/h5/home/searchApp
 
 ```bash
 mvn clean package
-java -jar target/product-monitor-1.0.jar
+java -jar target/product-monitor-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
 ## 使用说明
@@ -84,35 +84,6 @@ java -jar target/product-monitor-1.0.jar
     - 实时价格更新
     - 操作记录
     - 错误信息
-
-## 项目结构
-
-```
-product-monitor/
-├── src/
-│   └── main/
-│       └── java/
-│           └── org/
-│               └── example/
-│                   ├── config/
-│                   │   └── Config.java
-│                   ├── model/
-│                   │   └── Product.java
-│                   ├── service/
-│                   │   ├── ProductMonitor.java
-│                   │   └── TaskStatus.java
-│                   ├── ui/
-│                   │   ├── MainWindow.java
-│                   │   ├── ProductWindow.java
-│                   │   └── ProductObserver.java
-│                   └── util/
-│                       ├── Logger.java
-│                       └── HttpUtil.java
-├── logs/
-├── config.properties
-├── pom.xml
-└── README.md
-```
 
 ## 配置说明
 

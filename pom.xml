@@ -38,7 +38,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>org.example.Main</mainClass>
+                            <mainClass>org.example.ui.MainWindow</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -9,52 +9,64 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ProductWindow extends JFrame implements ProductObserver {
-    private JTextArea logArea;
-    private ProductMonitor monitor;
-    private JLabel statusLabel;
-    private JLabel currentPriceLabel;
-    private JLabel targetPriceLabel;
-    private JButton actionButton;
-    private JButton updatePriceButton;
 
+
+/**
+ * 商品监控窗口类
+ * 用于显示商品价格监控的状态、日志和控制界面
+ */
+public class ProductWindow extends JFrame implements ProductObserver {
+    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+    // UI 组件
+    private final JTextArea logArea;          // 日志显示区域
+    private final ProductMonitor monitor;      // 商品监控器
+    private JLabel statusLabel;         // 状态标签
+    private JLabel currentPriceLabel;   // 当前价格标签
+    private JLabel targetPriceLabel;    // 目标价格标签
+    private JButton actionButton;       // 动作按钮（开始/停止）
+    private JButton updatePriceButton;  // 更新价格按钮
+
+    /**
+     * 构造函数
+     * @param productName 商品名称
+     * @param monitor 商品监控器
+     */
     public ProductWindow(String productName, ProductMonitor monitor, MainWindow mainWindow) {
         super(productName + " - 抢购日志");
         this.monitor = monitor;
+        this.statusLabel = statusLabel;
+        this.currentPriceLabel = currentPriceLabel;
+        this.targetPriceLabel = targetPriceLabel;
+        this.actionButton = actionButton;
+        this.updatePriceButton = updatePriceButton;
 
-        // 创建主面板
+        // 创建主面板，使用BorderLayout布局
         JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // 创建状态面板
+        // 初始化各个面板
         JPanel statusPanel = createStatusPanel();
-
-        // 创建日志区域
-        logArea = new JTextArea(20, 50);
-        logArea.setEditable(false);
-        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        JScrollPane scrollPane = new JScrollPane(logArea);
-
-        // 创建按钮面板
+        logArea = createLogArea();
         JPanel buttonPanel = createButtonPanel();
 
+        // 组装主面板
         mainPanel.add(statusPanel, BorderLayout.NORTH);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(new JScrollPane(logArea), BorderLayout.CENTER);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
+        // 配置窗口属性
         add(mainPanel);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
 
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                setVisible(false);
-            }
-        });
+        // 添加窗口关闭监听器
+        setupWindowListener();
     }
 
+    /**
+     * 创建状态面板
+     */
     private JPanel createStatusPanel() {
         JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("状态信息"));
@@ -70,6 +82,19 @@ public class ProductWindow extends JFrame implements ProductObserver {
         return panel;
     }
 
+    /**
+     * 创建日志显示区域
+     */
+    private JTextArea createLogArea() {
+        JTextArea area = new JTextArea(20, 50);
+        area.setEditable(false);
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        return area;
+    }
+
+    /**
+     * 创建按钮面板
+     */
     private JPanel createButtonPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
 
@@ -89,6 +114,21 @@ public class ProductWindow extends JFrame implements ProductObserver {
         return panel;
     }
 
+    /**
+     * 设置窗口监听器
+     */
+    private void setupWindowListener() {
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                setVisible(false);
+            }
+        });
+    }
+
+    /**
+     * 切换监控状态
+     */
     private void toggleMonitoring() {
         if (monitor.getStatus() == TaskStatus.RUNNING) {
             monitor.stopMonitoring();
@@ -101,6 +141,9 @@ public class ProductWindow extends JFrame implements ProductObserver {
         }
     }
 
+    /**
+     * 更新目标价格
+     */
     private void updatePrice() {
         String input = JOptionPane.showInputDialog(
                 this,
@@ -126,15 +169,22 @@ public class ProductWindow extends JFrame implements ProductObserver {
         }
     }
 
+    /**
+     * 实现ProductObserver接口的更新方法
+     * @param product 商品对象
+     * @param message 更新消息
+     */
     @Override
     public void update(Product product, String message) {
         SwingUtilities.invokeLater(() -> {
             statusLabel.setText("状态: " + product.getStatus());
             currentPriceLabel.setText("当前价格: " + product.getCurrentPrice());
 
+            // 添加时间戳的日志记录
             logArea.append(String.format("[%s] %s%n",
-                    new SimpleDateFormat("HH:mm:ss").format(new Date()),
+                    TIME_FORMAT.format(new Date()),
                     message));
+            // 自动滚动到最新日志
             logArea.setCaretPosition(logArea.getDocument().getLength());
         });
     }
