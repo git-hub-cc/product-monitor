@@ -2,7 +2,7 @@ package org.example.ui;
 
 import org.example.model.Product;
 import org.example.service.ProductMonitor;
-import org.example.service.TaskStatus;
+import org.example.enums.TaskStatus;
 
 import javax.swing.*;
 import java.awt.*;

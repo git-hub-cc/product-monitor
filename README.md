@@ -35,9 +35,6 @@ cd product-monitor
 
 ```properties
 # API配置
-TOKEN=your_token_here
-ADDRESS_ID=your_address_id
-
 TIME_MILLISECONDS=2000
 SHORT_NAME=YE
 DEV_TYPE=2
@@ -93,14 +90,6 @@ java -jar target/product-monitor-1.0-SNAPSHOT-jar-with-dependencies.jar
     - 错误信息
 
 ## 配置说明
-
-### 必要配置
-
-- `TOKEN`: API访问令牌
-- `ADDRESS_ID`: 收货地址ID
-
-### 可选配置
-
 - `TIME_MILLISECONDS`: 监控间隔时间（毫秒）
 - `MAX_RETRIES`: 最大重试次数
 - `RETRY_DELAY`: 重试延迟时间

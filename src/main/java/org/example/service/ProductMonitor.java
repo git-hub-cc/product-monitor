@@ -1,6 +1,7 @@
 package org.example.service;
 
 import org.example.config.Config;
+import org.example.enums.TaskStatus;
 import org.example.model.Product;
 import org.example.ui.ProductObserver;
 import org.example.ui.ProductWindow;
@@ -13,6 +14,8 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.example.ui.MainWindow.addressComboBox;
 
 /**
  * 商品监控类
@@ -193,7 +196,7 @@ public class ProductMonitor {
     private void executePurchase() throws Exception {
         product.setStatus("正在下单");
         JSONObject orderBody = new JSONObject()
-                .put("addressId", Config.getInt("ADDRESS_ID"))
+                .put("addressId", addressComboBox.getSelectedItem())
                 .put("goodsId", product.getMinPriceGoodsId())
                 .put("shortName", Config.get("SHORT_NAME"))
                 .put("devType", Config.getInt("DEV_TYPE"));

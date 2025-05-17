@@ -1,10 +1,13 @@
 package org.example.ui;
 
+import org.example.model.AddressItem;
 import org.example.service.ProductMonitor;
 import org.example.service.ProductRelease;
+import org.example.service.UserLogin;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -12,20 +15,27 @@ import java.util.concurrent.Executors;
 
 /**
  * 主窗口类，用于展示商品监控系统的主界面
- * 实现了商品的添加、移除和监控功能
+ * 实现了用户登录、商品的添加、移除和监控功能
  */
 public class MainWindow extends JFrame {
     // 存储商品监控器的线程安全Map
     private final Map<String, ProductMonitor> monitors = new ConcurrentHashMap<>();
     private final ProductRelease productRelease = new ProductRelease();
+    private final UserLogin userLogin = new UserLogin();
+
+    public static JComboBox<AddressItem> addressComboBox;
+
     // 用于执行监控任务的线程池
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     // UI组件
     private final JTextField nameField = new JTextField(20);
     private final JTextField priceField = new JTextField(10);
-    // 使用普通JPanel，布局将在构造函数中设置
+    private final JTextField phoneField = new JTextField(15);
+    private final JTextField codeField = new JTextField(15);
     private final JPanel productListPanel = new JPanel();
+    private final JPanel mainContentPanel = new JPanel(new BorderLayout(10, 10));
+    private final JPanel loginPanel;
 
     /**
      * 构造函数：初始化主窗口界面
@@ -35,8 +45,29 @@ public class MainWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
+        // 初始化登录面板
+        loginPanel = createLoginPanel();
+
         // 初始化商品列表面板的布局
         productListPanel.setLayout(new BoxLayout(productListPanel, BoxLayout.Y_AXIS));
+
+        // 初始化主内容面板
+        initializeMainContentPanel();
+
+        // 初始显示登录面板
+        add(loginPanel, BorderLayout.CENTER);
+
+        // 设置窗口属性
+        setSize(1000, 600);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    /**
+     * 初始化主内容面板
+     */
+    private void initializeMainContentPanel() {
+        mainContentPanel.setVisible(false);
 
         // 创建添加商品面板
         JPanel addPanel = createAddPanel();
@@ -46,23 +77,82 @@ public class MainWindow extends JFrame {
         scrollPane.setBorder(BorderFactory.createTitledBorder("监控商品列表"));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // 添加面板到主窗口
-        add(addPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        // 添加面板到主内容面板
+        mainContentPanel.add(addPanel, BorderLayout.NORTH);
+        mainContentPanel.add(scrollPane, BorderLayout.CENTER);
+    }
 
-        // 设置窗口属性
-        pack();
-        setSize(800, 600);
-        setLocationRelativeTo(null); // 窗口居中显示
-        setVisible(true);
+    /**
+     * 创建登录面板
+     */
+    private JPanel createLoginPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // 手机号输入
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("手机号:"), gbc);
+        gbc.gridx = 1;
+        panel.add(phoneField, gbc);
+
+        // 验证码输入
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("验证码:"), gbc);
+        gbc.gridx = 1;
+        panel.add(codeField, gbc);
+
+        // 登录按钮
+        JButton loginButton = new JButton("登录");
+        gbc.gridx = 1; gbc.gridy = 2;
+        loginButton.addActionListener(e -> handleLogin());
+        panel.add(loginButton, gbc);
+
+        return panel;
+    }
+
+    /**
+     * 处理登录操作
+     */
+    private void handleLogin() {
+        String phone = phoneField.getText().trim();
+        String code = codeField.getText().trim();
+
+        if (phone.isEmpty() || code.isEmpty()) {
+            showErrorMessage("请输入手机号和验证码！");
+            return;
+        }
+
+        try {
+            if (userLogin.login(phone, code)) {
+                // 登录成功，切换到主界面
+                remove(loginPanel);
+                add(mainContentPanel);
+                mainContentPanel.setVisible(true);
+                revalidate();
+                repaint();
+
+                // 显示欢迎信息
+                JOptionPane.showMessageDialog(this,
+                        "欢迎回来，" + userLogin.getNickName());
+                List<AddressItem> addresses = userLogin.getAddresses();
+                // 更新地址选择下拉框
+                updateAddressComboBox(addresses);
+
+                revalidate();
+                repaint();
+            } else {
+                showErrorMessage("登录失败，请检查手机号和验证码是否正确");
+            }
+        } catch (Exception e) {
+            showErrorMessage("登录失败: " + e.getMessage());
+        }
     }
 
     /**
      * 创建添加商品的面板
-     * @return 配置好的JPanel
      */
     private JPanel createAddPanel() {
-        // 使用FlowLayout，设置左对齐和组件间距
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         panel.setBorder(BorderFactory.createTitledBorder("添加商品"));
 
@@ -71,6 +161,12 @@ public class MainWindow extends JFrame {
         panel.add(nameField);
         panel.add(new JLabel("目标价格:"));
         panel.add(priceField);
+
+
+        // 添加地址选择下拉框
+        addressComboBox = new JComboBox<>();
+        panel.add(new JLabel("选择地址:"));
+        panel.add(addressComboBox);
 
         // 添加 购买 按钮
         JButton addButton = new JButton("购买");
@@ -191,7 +287,18 @@ public class MainWindow extends JFrame {
      * 显示错误消息
      */
     private void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(this, message);
+        JOptionPane.showMessageDialog(this, message, "错误", JOptionPane.ERROR_MESSAGE);
+    }
+
+
+    /**
+     * 更新地址选择下拉框
+     */
+    private void updateAddressComboBox(List<AddressItem> addresses) {
+        addressComboBox.removeAllItems();
+        for (AddressItem address : addresses) {
+            addressComboBox.addItem(address);
+        }
     }
 
     /**
@@ -270,6 +377,6 @@ public class MainWindow extends JFrame {
      * 程序入口点
      */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainWindow());
+        SwingUtilities.invokeLater(MainWindow::new);
     }
 }

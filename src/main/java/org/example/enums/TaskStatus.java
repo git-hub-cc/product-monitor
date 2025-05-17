@@ -1,4 +1,4 @@
-package org.example.service;
+package org.example.enums;
 
 public enum TaskStatus {
     RUNNING,

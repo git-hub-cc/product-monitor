@@ -37,13 +37,12 @@ public class Config {
      */
     private static void createDefaultConfig() {
         // API认证相关配置
-        properties.setProperty("TOKEN", "");           // API访问令牌
-        properties.setProperty("ADDRESS_ID", "");      // 地址ID
         properties.setProperty("TIME_MILLISECONDS", "2000"); // 超时时间（毫秒）
         properties.setProperty("SHORT_NAME", "YE");    // 是否同意协议
         properties.setProperty("DEV_TYPE", "2");       // 支付方式
         properties.setProperty("DELAY_HOURS ", "5");       // 预售时间比发行延后数小时
         properties.setProperty("PLATFORM_ID", "741");       // 平台id
+        properties.setProperty("CLIENT_TYPE", "android");
 
         // API端点URL配置
         properties.setProperty("SEARCH_URL", "https://api.x-metash.cn/h5/home/searchApp");
@@ -52,6 +51,8 @@ public class Config {
         properties.setProperty("PRE_CREATE_URL", "https://api.x-metash.cn/h5/goods/preCreate");
         properties.setProperty("CREATE_URL", "https://api.x-metash.cn/h5/goods/create/v2");
         properties.setProperty("UNIFIED_PAY_URL", "https://api.x-metash.cn/h5/goods/create/unifiedPay");
+        properties.setProperty("LOGIN_URL", "https://api.x-metash.cn/h5/login");
+        properties.setProperty("ADDRESS_URL", "https://api.x-metash.cn/h5/address/list");
 
         // 重试策略配置
         properties.setProperty("MAX_RETRIES", "3");    // 最大重试次数
@@ -73,6 +74,10 @@ public class Config {
      */
     public static String get(String key) {
         return properties.getProperty(key);
+    }
+
+    public static void setKey(String key, String value) {
+        properties.setProperty(key, value);
     }
 
     /**
