@@ -36,15 +36,22 @@ cd product-monitor
 ```properties
 # API配置
 TOKEN=your_token_here
-TIME_MILLISECONDS=200
 ADDRESS_ID=your_address_id
+
+TIME_MILLISECONDS=2000
 SHORT_NAME=YE
 DEV_TYPE=2
-
+DELAY_HOURS =5
 MAX_RETRIES=3
-ORDER_URL=https\://api.x-metash.cn/h5/order/unifiedPay
 RETRY_DELAY=1000
+
+# API端点URL配置
+ORDER_URL=https\://api.x-metash.cn/h5/order/unifiedPay
 SEARCH_URL=https\://api.x-metash.cn/h5/home/searchApp
+ARCHIVE_URL=https\://api.x-metash.cn/h5/goods/archive
+PRE_CREATE_URL=https\://api.x-metash.cn/h5/goods/preCreate
+CREATE_URL=https\://api.x-metash.cn/h5/goods/create/v2
+UNIFIED_PAY_URL=https\://api.x-metash.cn/h5/goods/create/unifiedPay
 ```
 
 ### 3. 编译运行
@@ -91,14 +98,17 @@ java -jar target/product-monitor-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 - `TOKEN`: API访问令牌
 - `ADDRESS_ID`: 收货地址ID
-- `SHORT_NAME`: 是否同意协议
-- `DEV_TYPE`: 支付类型
 
 ### 可选配置
 
 - `TIME_MILLISECONDS`: 监控间隔时间（毫秒）
 - `MAX_RETRIES`: 最大重试次数
 - `RETRY_DELAY`: 重试延迟时间
+
+
+- `DEV_TYPE`：支付方式
+- `DELAY_HOURS`：预售时间比发行延后数小时
+
 
 ## 日志管理
 
@@ -129,7 +139,7 @@ logs/
 
 ### 自定义监控逻辑
 
-修改`ProductMonitor`类中的监控逻辑：
+修改`ProductMonitor`类，可以修改购买逻辑：
 
 ```java
 public void startMonitoring() {
@@ -137,10 +147,17 @@ public void startMonitoring() {
 }
 ```
 
+修改`ProductRelease`类，可以修改发布预购逻辑：
+
+```java
+public void publishPreOrder() {
+}
+```
+
 ## 常见问题
 
 1. 配置文件找不到
-    - 确认config.properties位于正确位置
+    - 确认config.properties位于正确位置,新版本可能需要更新
     - 检查文件权限
 
 2. 日志文件创建失败

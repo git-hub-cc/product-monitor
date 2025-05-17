@@ -1,6 +1,7 @@
 package org.example.ui;
 
 import org.example.service.ProductMonitor;
+import org.example.service.ProductRelease;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors;
 public class MainWindow extends JFrame {
     // 存储商品监控器的线程安全Map
     private final Map<String, ProductMonitor> monitors = new ConcurrentHashMap<>();
+    private final ProductRelease productRelease = new ProductRelease();
     // 用于执行监控任务的线程池
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -70,10 +72,15 @@ public class MainWindow extends JFrame {
         panel.add(new JLabel("目标价格:"));
         panel.add(priceField);
 
-        // 添加按钮及其事件监听
-        JButton addButton = new JButton("添加监控");
+        // 添加 购买 按钮
+        JButton addButton = new JButton("购买");
         addButton.addActionListener(e -> addProduct());
         panel.add(addButton);
+
+        // 添加 发布预购 按钮
+        JButton preOrderButton = new JButton("发布预购");
+        preOrderButton.addActionListener(e -> publishPreOrder());
+        panel.add(preOrderButton);
 
         return panel;
     }
@@ -145,6 +152,41 @@ public class MainWindow extends JFrame {
         updateProductList();
     }
 
+
+    /**
+     * 发布预购功能
+     */
+    private void publishPreOrder() {
+        String name = nameField.getText().trim();
+        String priceText = priceField.getText().trim();
+
+        // 输入验证
+        if (name.isEmpty() || priceText.isEmpty()) {
+            showErrorMessage("请输入商品名称和价格！");
+            return;
+        }
+
+        try {
+            double price = Double.parseDouble(priceText);
+            if (price <= 0) {
+                showErrorMessage("价格必须大于0！");
+                return;
+            }
+
+            boolean success = productRelease.publishPreOrder(name, price);
+            if (success) {
+                JOptionPane.showMessageDialog(this, "预购发布成功！");
+                clearInputFields();
+            } else {
+                showErrorMessage("预购确认失败！");
+            }
+
+        } catch (NumberFormatException e) {
+            showErrorMessage("请输入有效的价格！");
+        } catch (Exception e) {
+            showErrorMessage("发布预购失败: " + e.getMessage());
+        }
+    }
     /**
      * 显示错误消息
      */
