@@ -58,6 +58,15 @@ mvn clean package
 java -jar target/product-monitor-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
+Windows用户可以直接运行生成的exe文件,要求配置好JAVA_HOME
+```bash
+# 生成exe文件
+mvn clean package
+
+# exe文件位于target目录下
+./target/product-monitor.exe
+```
+
 ## 使用说明
 
 ### 主窗口

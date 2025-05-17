@@ -60,7 +60,7 @@ public class UserLogin {
                 this.nickName = data.getString("nickName");
                 this.phone = data.getString("phone");
 
-                Config.setKey("TOKEN", this.token);
+                Config.setKey("TOKEN", "Bearer"+this.token);
                 return true;
             } else {
                 throw new Exception("登录失败: " + response.optString("msg", "未知错误"));
