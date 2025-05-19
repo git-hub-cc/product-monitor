@@ -7,6 +7,8 @@ import org.example.util.HttpUtil;
 import org.example.util.Logger;
 import org.json.JSONObject;
 
+import java.awt.*;
+
 public class BuyOperation implements ProductOperation {
     private static final Logger logger = Logger.getInstance();
     private final Config config = Config.getInstance();
@@ -109,6 +111,7 @@ public class BuyOperation implements ProductOperation {
                 orderBody,
                 config.get("TOKEN")
         );
+        Toolkit.getDefaultToolkit().beep();
 
         handlePurchaseResponse(response, product);
     }

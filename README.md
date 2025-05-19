@@ -74,7 +74,7 @@ ORDER_URL=https://api.x-metash.cn/h5/order/unifiedPay
 
 # 重试配置
 MAX_RETRIES=3
-RETRY_DELAY=3000
+RETRY_DELAY_MS=3000
 ```
 
 ### 4. 运行程序
@@ -155,10 +155,14 @@ java -jar target/product-monitor.jar
 
 ## 更新日志
 
-### v1.0.0 (2024-03-xx)
+### v1.0.0 (2025-05-18)
 - 初始版本发布
 - 实现基本功能
 - 完善文档说明
+
+### 未来计划
+1. 添加一个网页的预览页面
+2. 将该程序改成通用
 
 ## 贡献指南
 

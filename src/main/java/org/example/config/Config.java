@@ -74,10 +74,11 @@ public class Config {
         properties.setProperty("UNIFIED_PAY_URL", "https://api.x-metash.cn/h5/goods/create/unifiedPay");
         properties.setProperty("LOGIN_URL", "https://api.x-metash.cn/h5/login");
         properties.setProperty("ADDRESS_URL", "https://api.x-metash.cn/h5/address/list");
+        properties.setProperty("GOODS_DETAILS", "https://api.x-metash.cn/h5/goods/details");
 
         // 重试配置
         properties.setProperty("MAX_RETRIES", "3");
-        properties.setProperty("RETRY_DELAY", "3000");
+        properties.setProperty("RETRY_DELAY_MS", "3000");
 
         saveConfig();
     }

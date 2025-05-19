@@ -49,7 +49,7 @@ public class ProductMonitor {
         this.errorCount = new AtomicLong(0);
         this.monitorFrequency = config.getLong("TIME_MILLISECONDS");
         this.maxRetries = config.getInt("MAX_RETRIES");
-        this.retryDelay = config.getLong("RETRY_DELAY");
+        this.retryDelay = config.getLong("RETRY_DELAY_MS");
     }
 
     public void startMonitoring() {
@@ -154,7 +154,23 @@ public class ProductMonitor {
         notifyObservers(String.format("当前价格: %.2f", currentPrice));
     }
 
-    private boolean shouldBuy() {
+    private boolean shouldBuy() throws Exception {
+        // 商品核对
+        JSONObject searchBody = new JSONObject()
+                .put("goodsId", product.getMinPriceGoodsId());
+        JSONObject response = HttpUtil.post(
+                config.get("GOODS_DETAILS"),
+                searchBody,
+                config.get("TOKEN")
+        );
+        JSONObject data = response.getJSONObject("data");
+        if (response.getInt("code") != 200) {
+            throw new MonitorException("商品核对失败: " + response.getString("msg"));
+        }
+        if (!product.getName().equals(data.getString("name"))){
+            throw new MonitorException("商品核对不一致");
+        }
+        // 价格不满足
         if (product.getCurrentPrice() > product.getTargetPrice()) {
             product.setStatus("等待中");
             return false;

@@ -1,5 +1,6 @@
 package org.example.util;
 
+import org.example.config.Config;
 import org.json.JSONObject;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -9,12 +10,13 @@ import java.time.Duration;
 
 public class HttpUtil {
     private static final Logger logger = Logger.getInstance();
+    private static final Config config = Config.getInstance();
     private static final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    private static final int MAX_RETRIES = 3;
-    private static final long RETRY_DELAY_MS = 1000;
+    private static final int MAX_RETRIES = config.getInt("MAX_RETRIES");
+    private static final long RETRY_DELAY_MS = config.getInt("RETRY_DELAY_MS");
 
     public static JSONObject post(String url, JSONObject body, String token)
             throws Exception {
@@ -44,9 +46,30 @@ public class HttpUtil {
                                           String token) throws Exception {
         HttpRequest request = createRequest(url, body, token);
 
-        logger.log("HTTP", "发送请求: " + url, Logger.LogLevel.DEBUG);
+        // 打印详细的请求信息
+        logger.log("HTTP", String.format("""
+            发送请求:
+            URL: %s
+            Headers: %s
+            Body: %s""",
+                        url,
+                        request.headers().map().toString(),
+                        body.toString(2)),
+                Logger.LogLevel.DEBUG);
+
         HttpResponse<String> response = client.send(request,
                 HttpResponse.BodyHandlers.ofString());
+
+        // 打印详细的响应信息
+        logger.log("HTTP", String.format("""
+            收到响应:
+            Status: %d
+            Headers: %s
+            Body: %s""",
+                        response.statusCode(),
+                        response.headers().map().toString(),
+                        new JSONObject(response.body()).toString(2)),
+                Logger.LogLevel.DEBUG);
 
         if (response.statusCode() >= 500) {
             String errorMsg = "服务器错误: " + response.statusCode();
