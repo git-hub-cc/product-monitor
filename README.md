@@ -29,17 +29,10 @@
    - 详细的操作日志
    - 灵活的配置选项
 
-## 系统要求
-
-- JDK 11或更高版本
-- 操作系统：Windows/MacOS/Linux
-- 内存：至少2GB可用内存
-- 磁盘空间：50MB以上
-
 ## 快速开始
 
 ### 1. 环境准备
-确保已安装JDK 11或更高版本：
+确保已安装JDK 17或更高版本：
 ```bash
 java -version
 ```
@@ -65,7 +58,7 @@ SHORT_NAME=YE
 DEV_TYPE=2
 DELAY_HOURS=5
 PLATFORM_ID=741
-CLIENT_TYPE=android
+CLIENT_TYPE=ios
 
 # API URLs配置
 SEARCH_URL=https://api.x-metash.cn/h5/home/searchApp
@@ -79,7 +72,8 @@ RETRY_DELAY_MS=3000
 
 ### 4. 运行程序
 ```bash
-java -jar target/product-monitor.jar
+# 运行JAR文件（需要添加JavaFX模块）
+java --add-modules javafx.web,javafx.swing -jar target/product-monitor.jar
 ```
 
 ## 使用指南
@@ -160,9 +154,12 @@ java -jar target/product-monitor.jar
 - 实现基本功能
 - 完善文档说明
 
+
+### v1.0.1 (2025-05-20)
+- 添加一个网页的预览页面
+
 ### 未来计划
-1. 添加一个网页的预览页面
-2. 将该程序改成通用
+1. 将该程序改成通用
 
 ## 贡献指南
 

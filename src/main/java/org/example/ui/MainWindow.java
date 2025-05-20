@@ -6,7 +6,6 @@ import org.example.model.ProductListItem;
 import org.example.service.*;
 import org.example.service.strategy.BuyOperation;
 import org.example.service.strategy.PreOrderOperation;
-import org.example.service.strategy.ProductOperation;
 import org.example.util.Logger;
 
 import javax.swing.*;
@@ -17,6 +16,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
+import javafx.scene.Scene;
+import javafx.scene.web.WebView;
+import javafx.scene.layout.VBox;
+import javafx.concurrent.Worker;
 
 public class MainWindow extends JFrame {
     private static final Logger logger = Logger.getInstance();
@@ -37,6 +43,13 @@ public class MainWindow extends JFrame {
     private final DefaultListModel<ProductListItem> productListModel;
     private final JList<ProductListItem> productList;
 
+    // 网页预览相关组件
+    private final JTextField urlField;
+    private final JPanel webPreviewPanel;
+    private WebView webView;
+    private final JFXPanel jfxPanel;
+    private final int PREVIEW_WIDTH = 414;  // iPhone标准宽度
+    private final int PREVIEW_HEIGHT = 896; // iPhone标准高度
     private JPanel createAddPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("商品管理"));
@@ -234,19 +247,32 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private void showError(String message) {
-        JOptionPane.showMessageDialog(this, message, "错误", JOptionPane.ERROR_MESSAGE);
-        logger.log("System", "错误: " + message, Logger.LogLevel.ERROR);
+        private void showError(String message) {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(this,
+                    message,
+                    "错误",
+                    JOptionPane.ERROR_MESSAGE);
+            logger.log("System", "错误: " + message, Logger.LogLevel.ERROR);
+        });
     }
 
     private void showMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "提示", JOptionPane.INFORMATION_MESSAGE);
-        logger.log("System", message, Logger.LogLevel.INFO);
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(this,
+                    message,
+                    "提示",
+                    JOptionPane.INFORMATION_MESSAGE);
+            logger.log("System", message, Logger.LogLevel.INFO);
+        });
     }
 
 
     public MainWindow() {
         super("商品抢购系统");
+
+        // 初始化JavaFX平台
+        Platform.setImplicitExit(false);
 
         // 初始化UI组件
         this.nameField = new JTextField(20);
@@ -260,13 +286,19 @@ public class MainWindow extends JFrame {
         this.productListModel = new DefaultListModel<>();
         this.productList = new JList<>(productListModel);
 
+        // 初始化网页预览组件
+        this.urlField = new JTextField(30);
+        this.webPreviewPanel = new JPanel();
+        this.jfxPanel = new JFXPanel();
+
         try {
             initializeUI();
+            initializeWebPreview();
             checkLoginStatus();
 
             // 设置窗口属性
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setSize(1000, 800);
+            setSize(800, 1250);
             setLocationRelativeTo(null);
 
             logger.log("System", "窗口初始化成功", Logger.LogLevel.INFO);
@@ -276,12 +308,140 @@ public class MainWindow extends JFrame {
         }
     }
 
+    private void initializeWebPreview() {
+        // 创建URL输入面板
+        JPanel urlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        urlPanel.add(new JLabel("网址:"));
+        urlPanel.add(urlField);
+
+        JButton previewButton = new JButton("预览");
+        previewButton.addActionListener(e -> loadWebPreview());
+        urlPanel.add(previewButton);
+
+        // 设置JFXPanel的首选大小
+        jfxPanel.setPreferredSize(new Dimension(PREVIEW_WIDTH, PREVIEW_HEIGHT));
+
+        // 在JavaFX线程中初始化WebView
+        Platform.runLater(() -> {
+            try {
+                webView = new WebView();
+                webView.setPrefSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
+
+                // 启用JavaScript
+                webView.getEngine().setJavaScriptEnabled(true);
+
+                // 设置用户代理为移动设备
+                webView.getEngine().setUserAgent(
+                        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 " +
+                                "(KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+                );
+
+                // 创建场景
+                VBox root = new VBox();
+                root.getChildren().add(webView);
+                Scene scene = new Scene(root, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+                jfxPanel.setScene(scene);
+
+                // 添加加载状态监听器，在页面加载完成后设置token
+                webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                    if (newState == Worker.State.SUCCEEDED && config.get("XM_URL").equals(urlField.getText())) {
+                        setWebToken();
+                    }
+                });
+
+                // 加载初始页面
+                webView.getEngine().load(config.get("XM_URL"));
+            } catch (Exception e) {
+                logger.log("System", "WebView初始化失败: " + e.getMessage(), Logger.LogLevel.ERROR);
+                SwingUtilities.invokeLater(() -> showError("WebView初始化失败: " + e.getMessage()));
+            }
+        });
+
+        // 创建一个带滚动条的面板来容纳预览窗口
+        JScrollPane scrollPane = new JScrollPane(jfxPanel);
+        scrollPane.setPreferredSize(new Dimension(PREVIEW_WIDTH + 20, PREVIEW_HEIGHT + 20));
+
+        // 设置预览面板
+        webPreviewPanel.setLayout(new BorderLayout());
+        webPreviewPanel.add(urlPanel, BorderLayout.NORTH);
+        webPreviewPanel.add(scrollPane, BorderLayout.CENTER);
+        webPreviewPanel.setBorder(BorderFactory.createTitledBorder("手机网页预览"));
+
+        // 添加到主面板
+        mainContentPanel.add(webPreviewPanel, BorderLayout.EAST);
+    }
+
+    private void loadWebPreview() {
+        String url = urlField.getText().trim();
+        if (url.isEmpty()) {
+            showError("请输入网址");
+            return;
+        }
+
+        // 添加协议前缀如果没有的话
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "https://" + url;
+        }
+
+        final String finalUrl = url;
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().load(finalUrl);
+            } catch (Exception e) {
+                logger.log("System", "加载网页失败: " + e.getMessage(), Logger.LogLevel.ERROR);
+                SwingUtilities.invokeLater(() -> showError("加载网页失败: " + e.getMessage()));
+            }
+        });
+    }
+
+
+
+    private void setWebToken() {
+        String token = config.get(Config.USER_TOKEN);
+        if (token == null || token.isEmpty()) {
+            showError("未找到token，请先登录");
+            return;
+        }
+
+        Platform.runLater(() -> {
+            try {
+                // 注入JavaScript代码来设置token
+                String script = String.format(
+                        "localStorage.setItem('token', '%s'); " +
+                                "localStorage.setItem('initToken', '%s'); " +
+                                "localStorage.setItem('initInfo', '%s'); " +
+                                "localStorage.setItem('userInfo', '%s'); " +
+                                "document.cookie = 'token=%s; path=/'; " +
+                                "console.log('Token and user info set successfully');",
+                        token, token,
+                        config.get("LOGIN_INFO"),
+                        config.get("LOGIN_INFO"),
+                        token
+                );
+
+                webView.getEngine().executeScript(script);
+            } catch (Exception e) {
+                logger.log("System", "设置Token失败: " + e.getMessage(), Logger.LogLevel.ERROR);
+                showError("设置Token失败: " + e.getMessage());
+            }
+        });
+    }
+
     private void initializeUI() {
         // 设置布局
         setLayout(new BorderLayout());
 
         // 初始化产品列表面板
         productListPanel.setLayout(new BoxLayout(productListPanel, BoxLayout.Y_AXIS));
+
+        // 初始化地址下拉框并添加点击监听器
+        addressComboBox = new JComboBox<>();
+        addressComboBox.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                updateAddressList();
+            }
+        });
 
         // 初始化主内容面板
         mainContentPanel.setVisible(false);
@@ -388,23 +548,6 @@ public class MainWindow extends JFrame {
     }
 
 
-    // 可选：添加自定义渲染器来更好地展示商品信息
-    private void setupProductList() {
-        productList.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value,
-                                                          int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof ProductListItem) {
-                    ProductListItem item = (ProductListItem) value;
-                    setText(String.format("%-30s 目标价格: %.2f", item.getName(), item.getTargetPrice()));
-                    setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-                }
-                return this;
-            }
-        });
-    }
-
     private void handleWindowClosing() {
         monitors.values().forEach(ProductMonitor::stopMonitoring);
         executor.shutdown();
@@ -419,12 +562,6 @@ public class MainWindow extends JFrame {
         logger.shutdown();
         config.saveConfig();
         ProductMonitorFactory.shutdown();
-    }
-
-    private void initializeMainContentPanel() {
-        mainContentPanel.setVisible(false);
-        mainContentPanel.add(createAddPanel(), BorderLayout.NORTH);
-        mainContentPanel.add(createProductListScrollPane(), BorderLayout.CENTER);
     }
 
 
@@ -494,118 +631,6 @@ public class MainWindow extends JFrame {
         add(loginPanel, BorderLayout.CENTER);
     }
 
-    private void handleBuyProduct() {
-        String name = nameField.getText().trim();
-        String priceText = priceField.getText().trim();
-
-        if (!validateProductInput(name, priceText)) {
-            return;
-        }
-
-        try {
-            double price = Double.parseDouble(priceText);
-            if (price <= 0) {
-                showError("价格必须大于0");
-                return;
-            }
-
-            ProductMonitor monitor = monitors.get(name);
-            if (monitor != null) {
-                handleExistingProduct(name, monitor);
-                return;
-            }
-
-            boolean continuousBuying = "1".equals(config.get("CONTINUOUS_BUYING"));
-            createNewProductMonitor(name, price, new BuyOperation(continuousBuying));
-            clearInputFields();
-        } catch (NumberFormatException e) {
-            showError("请输入有效的价格");
-        }
-    }
-
-    private void handlePreOrder() {
-        String name = nameField.getText().trim();
-        String priceText = priceField.getText().trim();
-
-        if (!validateProductInput(name, priceText)) {
-            return;
-        }
-
-        try {
-            double price = Double.parseDouble(priceText);
-            if (price <= 0) {
-                showError("价格必须大于0");
-                return;
-            }
-
-            // 显示发布模式选择对话框
-            Object[] options = {
-                    PreOrderOperation.PublishMode.SINGLE.getDescription(),
-                    PreOrderOperation.PublishMode.TRIPLE.getDescription(),
-                    "取消"
-            };
-
-            int choice = JOptionPane.showOptionDialog(this,
-                    "请选择发布模式",
-                    "发布预购",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    options,
-                    options[0]);
-
-            if (choice == JOptionPane.YES_OPTION || choice == JOptionPane.NO_OPTION) {
-                PreOrderOperation.PublishMode mode = (choice == JOptionPane.YES_OPTION) ?
-                        PreOrderOperation.PublishMode.SINGLE :
-                        PreOrderOperation.PublishMode.TRIPLE;
-
-                ProductMonitor monitor = ProductMonitorFactory.createMonitor(name, price);
-                monitor.setPreOrderOperation(mode);
-
-                ProductWindow window = new ProductWindow(name, monitor);
-                monitor.addObserver(window);
-                window.setVisible(true);
-
-                executor.submit(monitor::startMonitoring);
-                updateProductList();
-            }
-        } catch (NumberFormatException e) {
-            showError("请输入有效的价格");
-        }
-    }
-
-    private boolean validateProductInput(String name, String price) {
-        if (name.isEmpty() || price.isEmpty()) {
-            showError("请输入商品名称和价格");
-            return false;
-        }
-        return true;
-    }
-
-    private void handleExistingProduct(String name, ProductMonitor monitor) {
-        int option = JOptionPane.showConfirmDialog(this,
-                "商品已存在，是否更新价格？",
-                "确认更新",
-                JOptionPane.YES_NO_OPTION);
-
-        if (option == JOptionPane.YES_OPTION) {
-            monitor.stopMonitoring();
-            monitors.remove(name);
-        }
-    }
-
-    private void createNewProductMonitor(String name, double price, ProductOperation operation) {
-        ProductMonitor monitor = ProductMonitorFactory.createMonitor(name, price);
-        monitor.setOperation(operation);
-
-        ProductWindow window = new ProductWindow(name, monitor);
-        monitor.addObserver(window);
-
-        monitors.put(name, monitor);
-        executor.submit(monitor::startMonitoring);
-
-        updateProductList();
-    }
 
     private void updateAddressComboBox(List<AddressItem> addresses) {
         addressComboBox.removeAllItems();
@@ -614,58 +639,6 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private void clearInputFields() {
-        nameField.setText("");
-        priceField.setText("");
-    }
-
-    public void removeProduct(String name) {
-        ProductMonitor monitor = monitors.remove(name);
-        if (monitor != null) {
-            monitor.stopMonitoring();
-            updateProductList();
-        }
-    }
-
-    private void updateProductList() {
-        productListPanel.removeAll();
-        JPanel containerPanel = new JPanel();
-        containerPanel.setLayout(new BoxLayout(containerPanel, BoxLayout.Y_AXIS));
-        containerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        containerPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        monitors.forEach((name, monitor) -> {
-            JPanel itemPanel = createProductItemPanel(name, monitor);
-            containerPanel.add(itemPanel);
-            containerPanel.add(Box.createVerticalStrut(10));
-        });
-
-        if (!monitors.isEmpty()) {
-            containerPanel.remove(containerPanel.getComponentCount() - 1);
-        }
-
-        containerPanel.add(Box.createVerticalGlue());
-        productListPanel.add(containerPanel);
-        productListPanel.revalidate();
-        productListPanel.repaint();
-    }
-
-    private JPanel createProductItemPanel(String name, ProductMonitor monitor) {
-        JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        itemPanel.setMaximumSize(new Dimension(productListPanel.getWidth(), 35));
-        itemPanel.setPreferredSize(new Dimension(productListPanel.getWidth(), 35));
-        itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel label = new JLabel(String.format("%s - 目标价格: %.2f",
-                name, monitor.getProduct().getTargetPrice()));
-        JButton showButton = new JButton("显示窗口");
-        showButton.addActionListener(e -> monitor.showWindow());
-
-        itemPanel.add(label);
-        itemPanel.add(showButton);
-
-        return itemPanel;
-    }
 
     public static void main(String[] args) {
         try {
@@ -673,6 +646,9 @@ public class MainWindow extends JFrame {
         } catch (Exception e) {
             logger.log("System", "设置系统外观失败: " + e.getMessage(), Logger.LogLevel.WARN);
         }
+
+        // 确保在JavaFX线程初始化之前启动
+        Platform.startup(() -> {});
 
         SwingUtilities.invokeLater(() -> {
             try {

@@ -63,7 +63,7 @@ public class Config {
         properties.setProperty("DEV_TYPE", "2");
         properties.setProperty("DELAY_HOURS", "5");
         properties.setProperty("PLATFORM_ID", "741");
-        properties.setProperty("CLIENT_TYPE", "android");
+        properties.setProperty("CLIENT_TYPE", "ios");
 
         // API URLs
         properties.setProperty("SEARCH_URL", "https://api.x-metash.cn/h5/home/searchApp");
@@ -75,6 +75,7 @@ public class Config {
         properties.setProperty("LOGIN_URL", "https://api.x-metash.cn/h5/login");
         properties.setProperty("ADDRESS_URL", "https://api.x-metash.cn/h5/address/list");
         properties.setProperty("GOODS_DETAILS", "https://api.x-metash.cn/h5/goods/details");
+        properties.setProperty("XM_URL", "https://xmeta.x-metash.cn/prod/xmeta_mall/index.html");
 
         // 重试配置
         properties.setProperty("MAX_RETRIES", "3");

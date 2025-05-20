@@ -47,6 +47,7 @@ public class UserLogin {
 
             if (response.getInt("code") == 200) {
                 handleSuccessfulLogin(response.getJSONObject("data"));
+                Config.getInstance().set("LOGIN_INFO", String.valueOf(response.getJSONObject("data")));
                 logger.log("Login", "登录成功: " + nickName, Logger.LogLevel.INFO);
                 return true;
             } else {
